@@ -19,6 +19,7 @@ public class AI_StateMachine : MonoBehaviour
 	public float wanderSpeed;
 	public float changeDirectionTime;
 
+	private EnemyMoveScript moveComp;
 	private bool inited = false;
 
 	// States
@@ -29,7 +30,13 @@ public class AI_StateMachine : MonoBehaviour
     void Start()
     {
 		currState = StateName.IDLE_WANDER;
-		
+
+		// add move script
+		moveComp = gameObject.AddComponent<EnemyMoveScript>();
+		// update its values
+		moveComp.walkSpeed = wanderSpeed;
+
+		// Add new states
 		idleState = gameObject.AddComponent<Idle_State>();
 	}
 
@@ -38,7 +45,7 @@ public class AI_StateMachine : MonoBehaviour
 		if (!inited)
 		{
 			inited = true;
-			idleState.Init(wanderSpeed, changeDirectionTime);
+			idleState.Init(moveComp,changeDirectionTime);
 			//idleState.mWanderSpeed = wanderSpeed;
 			//idleState.mDirChangeTime = changeDirectionTime;
 		}
@@ -79,8 +86,11 @@ public abstract class State:MonoBehaviour
 	public StateName mStateName;
 
 	// State update funcitons
+	// Update the state (called every frame)
 	public abstract void StateUpdate();
+	// When you enter this state
 	public abstract void OnStateEnter();
+	// When you exit this state
 	public abstract void OnStateExit();
 }
 
@@ -89,73 +99,18 @@ public class Idle_State : State
 {
 	// Member variable
 	// public
-	public float mWanderSpeed, mDirChangeTime;
+	public float mDirChangeTime;
 	// private
+	EnemyMoveScript moveScript;
 	private Vector3 mWanderDir;
 	private float mWanderTimer;
-	private Quaternion mTargetLook;
 
-	// Constuctor
-	//public Idle_State()
-	//{
-	//	mStateName = StateName.IDLE_WANDER;
-	//	mWanderDir = transform.forward;
-	//	mWanderSpeed = 5f;
-	//	mWanderTimer = 0f;
-	//	mDirChangeTime = 1f;
-	//}
-	//public Idle_State(float speed/*wander speed*/, float time/*time between direciton changes*/)
-	//{
-	//	mStateName = StateName.IDLE_WANDER;
-	//	mWanderDir = transform.forward;
-	//	mWanderSpeed = speed;
-	//	mWanderTimer = 0f;
-	//	mDirChangeTime = time;
-	//}
-	public void Init(float speed/*wander speed*/, float time/*time between direciton changes*/)
+	public void Init(EnemyMoveScript mover, float time)
 	{
 		mStateName = StateName.IDLE_WANDER;
-		mWanderDir = transform.forward;
-		mWanderSpeed = speed;
+		moveScript = mover;
 		mWanderTimer = 0f;
 		mDirChangeTime = time;
-	}
-
-
-	/* - Wander functions - */
-	// This basically uses the unit forward/right vectors and the cos/sin results to make a unit vector in a random direciton
-	void FindNewDir()
-	{
-		// random float between 0 and 2pi
-		float rng = UnityEngine.Random.Range(0f, 6.1415f);
-
-		// turn that into a unit vector coefficients
-		float cos = Mathf.Cos(rng);
-		float sin = Mathf.Sin(rng);
-
-		// set new wander vec
-		mWanderDir = transform.forward * cos + transform.right * sin;
-
-		// set new target look rotation
-		mTargetLook = Quaternion.LookRotation(mWanderDir);
-	}
-
-	// Face function
-	private void Face()
-	{
-		// Slerp towards wander direction
-		transform.rotation = Quaternion.Slerp(transform.rotation, mTargetLook, Time.deltaTime * mWanderSpeed);
-	}
-
-	// Move function
-	private void Move()
-	{
-		Vector3 newPos = gameObject.transform.position;
-
-		// move in direction you're facing
-		newPos += transform.forward * mWanderSpeed * Time.deltaTime;
-
-		gameObject.transform.position = newPos;
 	}
 
 	// State update funcitons
@@ -168,13 +123,10 @@ public class Idle_State : State
 		if (mWanderTimer > mDirChangeTime)
 		{
 			mWanderTimer = 0f;
-			FindNewDir();
+			moveScript.FindRNGDir();
 		}
 
-		Face();
-
-		Move();
-
+		moveScript.UpdateMove();
 	}
 
 	public override void OnStateEnter()
