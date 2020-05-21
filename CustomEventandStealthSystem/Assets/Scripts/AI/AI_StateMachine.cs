@@ -20,6 +20,7 @@ public class AI_StateMachine : MonoBehaviour
 	public float changeDirectionTime;
 
 	private EnemyMoveScript moveComp;
+	private EnemyPerceptionScript percComp;
 	private bool inited = false;
 
 	// States
@@ -35,6 +36,9 @@ public class AI_StateMachine : MonoBehaviour
 		moveComp = gameObject.AddComponent<EnemyMoveScript>();
 		// update its values
 		moveComp.walkSpeed = wanderSpeed;
+
+		// add enemy perception script
+		percComp = gameObject.AddComponent<EnemyPerceptionScript>();
 
 		// Add new states
 		idleState = gameObject.AddComponent<Idle_State>();
@@ -54,6 +58,13 @@ public class AI_StateMachine : MonoBehaviour
 	// Update whole ass machine
 	public void UpdateMachine()
     {
+		// update movement component
+		moveComp.UpdateMove();
+
+		// update perception component
+		percComp.UpdatePerception();
+
+		// Update the current state
 		UpdateState();
     }
 
@@ -125,8 +136,6 @@ public class Idle_State : State
 			mWanderTimer = 0f;
 			moveScript.FindRNGDir();
 		}
-
-		moveScript.UpdateMove();
 	}
 
 	public override void OnStateEnter()
